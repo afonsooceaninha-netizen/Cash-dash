@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#11142b">
+<title>Cash Dash — Arcade</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#282c62,#101225 65%);color:#fff;font-family:system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh;display:flex;justify-content:center}
+main{width:min(100%,480px);padding:18px;display:flex;flex-direction:column;gap:12px}
+header{display:flex;justify-content:space-between;align-items:center}
+h1{margin:0;font-size:27px;letter-spacing:1px}h1 span{color:#ffd447}
+.pill{background:#ffffff18;border:1px solid #ffffff30;border-radius:20px;padding:7px 12px;font-size:13px}
+.stats{display:flex;gap:10px}.stat{flex:1;background:#ffffff12;border:1px solid #ffffff20;border-radius:14px;padding:10px;text-align:center}.stat small{display:block;color:#b9c0ef}.stat b{font-size:22px}
+#game{width:100%;aspect-ratio:4/5;max-height:62vh;background:linear-gradient(#20295c,#171a35);border:2px solid #6872cb;border-radius:20px;display:block;touch-action:pan-y}
+.controls{display:flex;gap:10px}.controls button, #start{border:0;border-radius:14px;padding:14px;font-weight:800;font-size:16px;color:#16182e;background:#ffd447;box-shadow:0 4px 0 #bb8d13;cursor:pointer}.controls button{flex:1;touch-action:manipulation}#start{width:100%}
+.hint{text-align:center;color:#c5c9e8;font-size:13px;margin:0}.ad{border:1px dashed #858bb9;border-radius:12px;text-align:center;padding:10px;color:#aeb4db;font-size:12px}
+.overlay{position:fixed;inset:0;background:#080a18c9;display:flex;align-items:center;justify-content:center;padding:22px}.panel{width:min(100%,380px);background:#22264b;border:1px solid #747bd0;border-radius:22px;padding:24px;text-align:center;box-shadow:0 20px 60px #0008}.panel h2{margin-top:0}.panel p{color:#d2d5f0;line-height:1.5}.hidden{display:none}
+</style>
+</head>
+<body>
+<main>
+<header><h1>CASH <span>DASH</span></h1><span class="pill">ARCADE</span></header>
+<section class="stats"><div class="stat"><small>SCORE</small><b id="score">0</b></div><div class="stat"><small>RECORD</small><b id="best">0</b></div><div class="stat"><small>PIÈCES</small><b id="coins">0</b></div></section>
+<canvas id="game" width="400" height="500" aria-label="Jeu Cash Dash"></canvas>
+<div class="controls"><button id="left">◀ GAUCHE</button><button id="right">DROITE ▶</button></div>
+<button id="start">JOUER</button>
+<p class="hint">Déplace-toi avec les boutons ou touche le côté gauche/droit de l'écran.</p>
+<div class="ad">ESPACE PUBLICITAIRE — emplacement de démonstration, aucune publicité réelle</div>
+</main>
+<div class="overlay" id="overlay"><div class="panel"><h2 id="title">Prêt à courir ?</h2><p id="message">Évite les blocs rouges, ramasse les pièces dorées et bats ton record !</p><button id="start2">COMMENCER</button></div></div>
+<script>
+const c=document.getElementById('game'),ctx=c.getContext('2d');
+const $=id=>document.getElementById(id);
+let player={lane:1,y:425},objects=[],score=0,coins=0,best=Number(localStorage.getItem('cashdash-best')||0),running=false,frame=0,speed=3,spawn=0;
+$('best').textContent=best;
+function laneX(l){return [90,200,310][l]}
+function reset(){player.lane=1;objects=[];score=0;coins=0;frame=0;speed=3;spawn=0;$('score').textContent=0;$('coins').textContent=0}
+function start(){reset();running=true;$('overlay').classList.add('hidden');requestAnimationFrame(loop)}
+function move(d){if(running)player.lane=Math.max(0,Math.min(2,player.lane+d))}
+$('left').onclick=()=>move(-1);$('right').onclick=()=>move(1);$('start').onclick=start;$('start2').onclick=start;
+c.addEventListener('pointerdown',e=>{const r=c.getBoundingClientRect();move(e.clientX<r.left+r.width/2?-1:1)});
+function spawnObj(){let lane=Math.floor(Math.random()*3);objects.push({lane,y:-25,type:Math.random()<.34?'coin':'block'})}
+function draw(){
+ctx.clearRect(0,0,400,500);
+let grd=ctx.createLinearGradient(0,0,0,500);grd.addColorStop(0,'#252d65');grd.addColorStop(1,'#15182f');ctx.fillStyle=grd;ctx.fillRect(0,0,400,500);
+ctx.strokeStyle='#7882d055';ctx.lineWidth=3;ctx.setLineDash([18,16]);[145,255].forEach(x=>{ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,500);ctx.stroke()});ctx.setLineDash([]);
+objects.forEach(o=>{if(o.type==='coin'){ctx.fillStyle='#ffd447';ctx.beginPath();ctx.arc(laneX(o.lane),o.y,12,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fff0a0';ctx.lineWidth=3;ctx.stroke()}else{ctx.fillStyle='#ff596c';ctx.beginPath();ctx.roundRect(laneX(o.lane)-22,o.y-20,44,40,8);ctx.fill();ctx.fillStyle='#ffb2bb';ctx.fillRect(laneX(o.lane)-12,o.y-8,24,5)}});
+ctx.fillStyle='#66e6ff';ctx.beginPath();ctx.roundRect(laneX(player.lane)-19,player.y-22,38,44,10);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(laneX(player.lane)-6,player.y-7,3,0,7);ctx.arc(laneX(player.lane)+6,player.y-7,3,0,7);ctx.fill();
+}
+function end(){running=false;best=Math.max(best,score);localStorage.setItem('cashdash-best',best);$('best').textContent=best;$('title').textContent='Partie terminée !';$('message').textContent=`Score : ${score} • Pièces : ${coins}. Recommence pour battre ton record !`;$('start2').textContent='REJOUER';$('overlay').classList.remove('hidden')}
+function loop(){
+if(!running)return;frame++;spawn++;if(spawn>Math.max(25,65-Math.floor(score/100))){spawn=0;spawnObj()}
+speed=3+Math.min(4,score/250);
+objects.forEach(o=>o.y+=speed);
+objects=objects.filter(o=>{if(o.y>player.y-18&&o.y<player.y+20&&o.lane===player.lane){if(o.type==='block'){end();return false}else{coins++;$('coins').textContent=coins;return false}}return o.y<540});
+if(!running)return;
+if(frame%6===0){score++;$('score').textContent=score}
+draw();requestAnimationFrame(loop)
+}
+draw();
+</script>
+</body></html>
